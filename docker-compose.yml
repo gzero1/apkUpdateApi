@@ -1,0 +1,10 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  updaterApi:
+    build: .
+    image: update-api
+    commands: pip install -r requirements.txt
+    ports:
+      - "3432:3432"
+volumes:
+    - ./:/usr/app
