@@ -1,5 +1,6 @@
 import os
 import ssl
+from werkzeug.utils import redirect
 from flask.helpers import send_from_directory
 from database.model import Users, AppVersions
 from utils.app_version import checkAppVersion, newAppVersion, saveApk, getFileName
@@ -25,6 +26,13 @@ jwt = JWTManager(app)
 app.config['UPLOAD_FOLDER'] = '/tmp/fileUpload'
 app.config['MAX_CONTENT_PATH'] = 150000000
 CORS(app, origins=["*"])
+
+# Decorator
+@app.before_request
+def before_request():
+    if request.is_secure:
+        url = request.url.replace("https://", "http://", 1)
+        return redirect(url, code=301)
 
 # Login
 @app.route('/authorize', methods=["POST"])
