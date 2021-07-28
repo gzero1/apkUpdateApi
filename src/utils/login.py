@@ -17,24 +17,24 @@ def hashPassword(passwordPlain):
     )
     return password
 
-def checkLogin(json):
+def checkLogin(json: dict):
     try:
-        user_name:str = json.login
-        password:str = json.password
-
+        user_name:str = json['login']
+        password:str = json['password']
         resultUserName = query('SELECT password from users where login = %s LIMIT 1',(user_name,))
+        print(resultUserName[0][0])
         if (len(resultUserName) == 0 ):
-            return jsonify({ 'message': 'User or password is invalid!'}), 400
+            return {'message': 'User or password is invalid!', 'status': 400}
         hashedpass = hashPassword(password)
+        print(str(hashedpass))
         if (resultUserName[0][0] == str(hashedpass)):
-            jwtToken = generateToken(json.login)
-            returnVar = jsonify({'message': 'User Logged succesfully!'})
-            return returnVar
+
+            return {'message': 'User Logged succesfully!', 'status': 200}
         else:
-            return jsonify({ 'message': "User or password in invalid!"}), 400
+            return {'message': "User or password in invalid!", 'status': 400}
     except Exception as error:
         print(error)
-        return jsonify({ "message": "There was an error in your request"}), 500
+        return {"message": "There was an error in your request", 'status': 500}
 
 
 # def newuser(jsonIN):

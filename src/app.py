@@ -32,8 +32,9 @@ def authorize():
     user = Users()
     user.login = request.json["login"]
     user.password = request.json["password"]
-    access_token = create_access_token(identity="example_user")
-    response = jsonify({"message": "login successful", "token": access_token})
+    checkedDict = checkLogin({"login": user.login, "password": user.password})
+    access_token = create_access_token(identity=user.login) if checkedDict['status'] == 200 else ""
+    response = jsonify({"message": checkedDict['message'], "token": access_token}), checkedDict['status']
     return response
 
 
@@ -77,5 +78,5 @@ def downloadLatestVersion(app_name: str, version: str):
 
 # ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 # ctx.load_cert_chain('cert.pem', 'key.pem')
-app.run(host= '0.0.0.0', port= 3432, debug=False)
+app.run(host= '0.0.0.0', port= 3432, debug=True)
 
