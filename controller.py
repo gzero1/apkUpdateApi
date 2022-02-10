@@ -35,7 +35,7 @@ async def get_apps( session: AsyncSession = Depends(get_async_session), user: Us
     
 
 @router.get("/info/{name}")
-async def get_app_info(name: str, session: AsyncSession = Depends(get_async_session), _ = Depends(current_active_user)):
+async def get_app_info(name: str, session: AsyncSession = Depends(get_async_session)):
     app = await get_app_by_name(session, name)
     if (app == None):
         raise HTTPException(status_code=404, detail="Não foi possível achar o aplicativo")

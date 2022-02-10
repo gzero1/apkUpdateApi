@@ -11,8 +11,9 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.schema import Column
 from sqlalchemy.types import String, Integer, Boolean, DateTime
 from sqlalchemy.sql import func
-
+from dotenv import load_dotenv
 from schemas import UserDB
+load_dotenv()
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 

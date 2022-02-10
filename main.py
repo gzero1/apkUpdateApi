@@ -4,13 +4,14 @@ from fastapi import FastAPI
 from authentication import auth_backend, fastapi_users
 from database import create_db_and_tables
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 import controller
 
 
 # Initialize the app
 app = FastAPI()
 
+app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
