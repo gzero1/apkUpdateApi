@@ -1,13 +1,12 @@
-from email.mime import application
 import os
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 from fastapi import Depends
 from fastapi_users.db import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
 from fastapi_users_db_sqlalchemy import GUID
-from sqlalchemy import ForeignKey, Table
+from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, validates
 from sqlalchemy.schema import Column
 from sqlalchemy.types import String, Integer, Boolean, DateTime
 from sqlalchemy.sql import func
@@ -51,6 +50,23 @@ class App(Base):
 class UserTable(Base, SQLAlchemyBaseUserTable):
     # applications = relationship('App', secondary=AppUser.__table__, backref='user')
     ...
+
+class DownloadHistory(Base):
+    __tablename__ = 'download_history'
+
+    id = Column(Integer, primary_key=True, index=True)
+    imei = Column(String(16))
+    app_id = Column(Integer, ForeignKey('app.id'))
+    version = Column(String(20))
+    downloaded_at = Column(DateTime, server_default=func.now())
+
+    @validates('imei')
+    def validate_imei(self, key, imei):
+        if len(imei) < 15:
+            raise ValueError('invalid imei')
+        return imei
+
+    
 
 
 async def create_db_and_tables():
