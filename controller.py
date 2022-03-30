@@ -8,7 +8,7 @@ import threading
 from typing import Generator, Union
 from ftplib import FTP, error_perm
 from queue import Queue
-from dal import get_all_downloaded_imeis_by_name, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_imei, get_total_downloads_by_name, get_total_updated_by_name
+from dal import get_all_downloaded_android_ids_by_name, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_android_id, get_total_downloads_by_name, get_total_updated_by_name
 from fastapi import APIRouter, Depends, File, Form, Response, HTTPException
 from dotenv import load_dotenv
 from fastapi_users import BaseUserManager, models
@@ -98,7 +98,7 @@ async def create_file(
     return {'filesize': len(file)}
 
 @router.get('/download/{name}/latest')
-async def download_file(name: str, imei: Union[str, None] = None, session: AsyncSession = Depends(get_async_session)):
+async def download_file(name: str, android_id: Union[str, None] = None, session: AsyncSession = Depends(get_async_session)):
 
     app = await get_app_by_name(session, name)
     if (app == None):
@@ -133,12 +133,12 @@ async def download_file(name: str, imei: Union[str, None] = None, session: Async
                     ftp.quit()
                     return
         
-        if imei is not None:
-            if imei not in (await get_all_downloaded_imeis_by_name(session, name)):
-                new_download = DownloadHistory(imei=imei,app_id=app.id, version=latest_apk.version)
+        if android_id is not None:
+            if android_id not in (await get_all_downloaded_android_ids_by_name(session, name)):
+                new_download = DownloadHistory(android_id=android_id,app_id=app.id, version=latest_apk.version)
                 session.add(new_download)
             else:
-                updated_download = await get_app_download_by_imei(session, name, imei)
+                updated_download = await get_app_download_by_android_id(session, name, android_id)
                 updated_download.downloaded_at = datetime.now()
             await session.commit()
             await session.flush()
@@ -150,16 +150,16 @@ async def download_file(name: str, imei: Union[str, None] = None, session: Async
         raise HTTPException(status_code=401, detail='FTP recusou a conexão')
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail='IMEI inválido')
+        raise HTTPException(status_code=400, detail='android_id inválido')
     except Exception as e:
         print(e)
         raise HTTPException(status_code=401, detail='Erro na conexão com ftp')
 
 @router.get('/download_info/{name}')
-async def download_info(name: str, imei: Union[str, None], session: AsyncSession = Depends(get_async_session), _ = Depends(current_active_user)):
-    download = await get_app_download_by_imei(session, name, imei)
+async def download_info(name: str, android_id: Union[str, None], session: AsyncSession = Depends(get_async_session), _ = Depends(current_active_user)):
+    download = await get_app_download_by_android_id(session, name, android_id)
     if download is None:
-        raise HTTPException(status_code=404, detail='IMEI não existe')
+        raise HTTPException(status_code=404, detail='android_id não existe')
     latest_apk = await get_latest_apk_by_app_id(session, download.app_id)
     return {
         'is_updated': download.version == latest_apk.version,

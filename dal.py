@@ -30,15 +30,15 @@ async def get_latest_apk_by_app_id(session: AsyncSession, app_id: int) -> Apk:
 
     return latest_apk
     
-async def get_all_downloaded_imeis_by_name(session: AsyncSession, name: str) -> List[str]:
+async def get_all_downloaded_android_ids_by_name(session: AsyncSession, name: str) -> List[str]:
     app = await get_app_by_name(session, name)
 
-    return (await session.execute(select(DownloadHistory.imei).filter_by(app_id=app.id))).scalars().all()
+    return (await session.execute(select(DownloadHistory.android_id).filter_by(app_id=app.id))).scalars().all()
 
-async def get_app_download_by_imei(session: AsyncSession, name: str, imei: str) -> DownloadHistory:
+async def get_app_download_by_android_id(session: AsyncSession, name: str, android_id: str) -> DownloadHistory:
     app = await get_app_by_name(session, name)
 
-    return (await session.execute(select(DownloadHistory).filter_by(imei=imei, app_id=app.id))).scalar()
+    return (await session.execute(select(DownloadHistory).filter_by(android_id=android_id, app_id=app.id))).scalar()
 
 async def get_total_downloads_by_name(session: AsyncSession, name: str) -> int:
     app = await get_app_by_name(session, name)

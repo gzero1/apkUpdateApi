@@ -55,16 +55,16 @@ class DownloadHistory(Base):
     __tablename__ = 'download_history'
 
     id = Column(Integer, primary_key=True, index=True)
-    imei = Column(String(16))
+    android_id = Column(String(16))
     app_id = Column(Integer, ForeignKey('app.id'))
     version = Column(String(20))
     downloaded_at = Column(DateTime, server_default=func.now())
 
-    @validates('imei')
-    def validate_imei(self, key, imei):
-        if len(imei) < 15:
-            raise ValueError('invalid imei')
-        return imei
+    @validates('android_id')
+    def validate_android_id(self, key, android_id):
+        if len(android_id) > 16:
+            raise ValueError('invalid android_id')
+        return android_id
 
     
 

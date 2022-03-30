@@ -1,4 +1,6 @@
 # Import FastAPI
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from authentication import auth_backend, fastapi_users
@@ -6,12 +8,14 @@ from database import create_db_and_tables
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 import controller
-
+load_dotenv()
 
 # Initialize the app
 app = FastAPI()
 
-app.add_middleware(HTTPSRedirectMiddleware)
+TYPE = os.getenv('DATABASE_URL')
+if TYPE == 'prod':
+    app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
