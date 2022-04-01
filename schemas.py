@@ -66,6 +66,9 @@ class HTTPError(BaseModel):
             "example": {"detail": "HTTPException raised."},
         }
 
+class SetAppBody(BaseModel):
+    version: str
+    is_stable: bool
 
 
 

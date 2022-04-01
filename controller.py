@@ -4,11 +4,14 @@
 from datetime import datetime
 import io
 import os
+from shutil import ExecError
 import threading
 from typing import Generator, Union
 from ftplib import FTP, error_perm
 from queue import Queue
-from dal import get_all_downloaded_android_ids_by_name, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_android_id, get_total_downloads_by_name, get_total_updated_by_name
+
+from pydantic import BaseModel
+from dal import get_all_downloaded_android_ids_by_name, get_apk_by_app_id_and_version, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_android_id, get_total_downloads_by_name, get_total_updated_by_name
 from fastapi import APIRouter, Depends, File, Form, Response, HTTPException
 from dotenv import load_dotenv
 from fastapi_users import BaseUserManager, models
@@ -40,15 +43,36 @@ async def get_app_info(name: str, session: AsyncSession = Depends(get_async_sess
     if (app == None):
         raise HTTPException(status_code=404, detail='Não foi possível achar o aplicativo')
     latest_apk = await get_latest_apk_by_app_id(session, app.id)
-    {
-            
-        }
+
     return {
         **app.__dict__, 
         'latest_version': latest_apk.version if latest_apk is not None else None,
         'total_downloads': await get_total_downloads_by_name(session, name),
         'total_updated': await get_total_updated_by_name(session, name)
     }
+
+@router.get('/info/{name}/apks')
+async def get_app_info(name: str, session: AsyncSession = Depends(get_async_session)):
+    app = await get_app_by_name(session, name)
+    if (app == None):
+        raise HTTPException(status_code=404, detail='Não foi possível achar o aplicativo')
+    apks = await get_apks_by_app_id(session, app.id, filterUnstable=False)
+
+    return apks
+
+@router.post('/info/{name}')
+async def set_app_info(name: str, body: schemas.SetAppBody, session: AsyncSession = Depends(get_async_session)):
+    app = await get_app_by_name(session, name)
+    if (app == None):
+        raise HTTPException(status_code=404, detail='Não foi possível achar o aplicativo')
+
+    apk = await get_apk_by_app_id_and_version(session, app.id, body.version)
+    if (apk == None):
+        raise HTTPException(status_code=400, detail='A versão especificada não existe')
+    apk.is_stable = body.is_stable
+    await session.commit()
+    await session.flush()
+    return {'message': 'success'}
 
 @router.post('/upload/{name}')
 async def create_file(

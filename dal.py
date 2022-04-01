@@ -17,8 +17,11 @@ async def get_apps_by_user_id(session: AsyncSession, user_id: str) -> List[App]:
 async def get_app_by_name(session: AsyncSession, name: str) -> App:
     return (await session.execute(select(App).filter_by(name=name))).scalar()
 
-async def get_apks_by_app_id(session: AsyncSession, app_id: int) -> List[Apk]:
-    return (await session.execute(select(Apk).filter_by(app_id=app_id, is_stable=True))).scalars().all()
+async def get_apks_by_app_id(session: AsyncSession, app_id: int, filterUnstable = True) -> List[Apk]:
+    filterKwargs = {'app_id': app_id } 
+    if filterUnstable == True:
+        filterKwargs['is_stable'] = True
+    return (await session.execute(select(Apk).filter_by(**filterKwargs))).scalars().all()
 
 async def get_latest_apk_by_app_id(session: AsyncSession, app_id: int) -> Apk:
     apks = await get_apks_by_app_id(session, app_id)
@@ -29,6 +32,9 @@ async def get_latest_apk_by_app_id(session: AsyncSession, app_id: int) -> Apk:
     latest_apk: Union[Apk, None] = sorted(list(apks), key=cmp_to_key(lambda x, y: semver.compare(x.version, y.version)))[-1] 
 
     return latest_apk
+
+async def get_apk_by_app_id_and_version(session: AsyncSession, app_id: str, version: str) -> Apk:
+    return (await session.execute(select(Apk).filter_by(app_id=app_id, version=version))).scalar()
     
 async def get_all_downloaded_android_ids_by_name(session: AsyncSession, name: str) -> List[str]:
     app = await get_app_by_name(session, name)
@@ -42,13 +48,15 @@ async def get_app_download_by_android_id(session: AsyncSession, name: str, andro
 
 async def get_total_downloads_by_name(session: AsyncSession, name: str) -> int:
     app = await get_app_by_name(session, name)
-    
+    print((await session.execute(select(func.count(DownloadHistory.id)).filter_by(app_id=app.id))).scalar())
     return (await session.execute(select(func.count(DownloadHistory.id)).filter_by(app_id=app.id))).scalar()
 
 async def get_total_updated_by_name(session: AsyncSession, name: str) -> int:
     app = await get_app_by_name(session, name)
 
     latest_apk = await get_latest_apk_by_app_id(session, app.id)
+    if (latest_apk == None):
+        return 0
 
     return (await session.execute(select(func.count(DownloadHistory.id)).filter_by(app_id=app.id, version=latest_apk.version))).scalar()
 
