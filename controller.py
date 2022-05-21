@@ -1,26 +1,24 @@
 # api.py
 
 
-from datetime import datetime
 import io
 import os
-from shutil import ExecError
+import semver
+import schemas
 import threading
+
+from datetime import datetime
 from typing import Generator, Union
 from ftplib import FTP, error_perm
 from queue import Queue
-
-from pydantic import BaseModel
 from dal import get_all_downloaded_android_ids_by_name, get_apk_by_app_id_and_version, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_android_id, get_total_downloads_by_name, get_total_updated_by_name
-from fastapi import APIRouter, Depends, File, Form, Response, HTTPException
 from dotenv import load_dotenv
-from fastapi_users import BaseUserManager, models
 from authentication import current_active_user, fastapi_users
 from sqlalchemy.ext.asyncio import AsyncSession
-import schemas
-import semver
+from fastapi import APIRouter, Depends, File, Form, HTTPException
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi_users import models
+from fastapi_users import BaseUserManager, models
 from fastapi_users.manager import (
     BaseUserManager,
     InvalidPasswordException,
@@ -29,6 +27,7 @@ from fastapi_users.manager import (
 from fastapi.responses import StreamingResponse
 from fastapi_users.router.common import ErrorCode, ErrorModel
 from database import Apk, DownloadHistory, UserTable, get_async_session
+
 router = APIRouter()
 load_dotenv()
 
@@ -91,11 +90,11 @@ async def create_file(
 
     apks = await get_apks_by_app_id(session, app.id)
     
-    # Convention will be {name}_{parsed_semver}.apk like biju3_6_3-beta.apk
+    # Convention will be {name}{parsed_semver}.apk like biju3_6_3-beta.apk
     filename = '{}{}'.format(app.name, version.replace('.', '_'))
 
     try:
-        ftp = FTP('theddy.top')
+        ftp = FTP('theddy.top', timeout=5)
         ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
 
         ftp.cwd('updater')
@@ -130,11 +129,11 @@ async def download_file(name: str, android_id: Union[str, None] = None, session:
 
     latest_apk = await get_latest_apk_by_app_id(session, app.id)
 
-    # Convention will be {name}_{parsed_semver}.apk like biju3_6_3-beta.apk
+    # Convention will be {name}{parsed_semver}.apk like biju3_6_3-beta.apk
     filename = '{}{}'.format(app.name, latest_apk.version.replace('.', '_'))
     
     try:
-        ftp = FTP('theddy.top')
+        ftp = FTP('theddy.top', timeout=5)
         ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
         ftp.cwd('./updater')
         size = ftp.size(f'./{filename}.apk')
