@@ -1,8 +1,8 @@
-from functools import cmp_to_key
 import semver
+
+from functools import cmp_to_key
 from ctypes import Union
 from typing import List
-from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession

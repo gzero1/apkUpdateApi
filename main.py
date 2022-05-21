@@ -1,13 +1,14 @@
 # Import FastAPI
 import os
+import controller
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
-
 from authentication import auth_backend, fastapi_users
 from database import create_db_and_tables
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
-import controller
+
 load_dotenv()
 
 # Initialize the app

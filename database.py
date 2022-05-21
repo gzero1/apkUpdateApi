@@ -1,4 +1,5 @@
 import os
+
 from typing import AsyncGenerator
 from fastapi import Depends
 from fastapi_users.db import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
@@ -12,6 +13,7 @@ from sqlalchemy.types import String, Integer, Boolean, DateTime
 from sqlalchemy.sql import func
 from dotenv import load_dotenv
 from schemas import UserDB
+
 load_dotenv()
 
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -61,13 +63,10 @@ class DownloadHistory(Base):
     downloaded_at = Column(DateTime, server_default=func.now())
 
     @validates('android_id')
-    def validate_android_id(self, key, android_id):
+    def validate_android_id(self, _, android_id):
         if len(android_id) > 16:
             raise ValueError('invalid android_id')
         return android_id
-
-    
-
 
 async def create_db_and_tables():
     async with engine.begin() as conn:

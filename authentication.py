@@ -4,10 +4,9 @@ from dotenv import load_dotenv
 
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, FastAPIUsers
-
+from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
 from database import  get_user_db
 from schemas import UserCreate, UserDB, User, UserUpdate
-from fastapi_users.authentication import CookieTransport, AuthenticationBackend, BearerTransport, JWTStrategy
 
 load_dotenv()
 bearer_transport = BearerTransport("auth/jwt/login");

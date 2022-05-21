@@ -1,6 +1,5 @@
 # schemas.py
 import datetime
-from typing import List, Optional
 from sqlalchemy.orm import Query
 from pydantic import BaseModel, validator
 from fastapi_users import models
