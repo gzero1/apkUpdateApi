@@ -15,7 +15,7 @@ load_dotenv()
 app = FastAPI()
 
 TYPE = os.getenv('DATABASE_URL')
-if TYPE == 'prod':
+if TYPE.lower() == 'prod':
     app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(
     CORSMiddleware,

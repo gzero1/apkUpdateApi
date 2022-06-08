@@ -24,7 +24,7 @@ from fastapi_users.manager import (
     InvalidPasswordException,
     UserAlreadyExists
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi_users.router.common import ErrorCode, ErrorModel
 from database import Apk, DownloadHistory, UserTable, get_async_session
 
@@ -132,30 +132,7 @@ async def download_file(name: str, android_id: Union[str, None] = None, session:
     # Convention will be {name}{parsed_semver}.apk like biju3_6_3-beta.apk
     filename = '{}{}'.format(app.name, latest_apk.version.replace('.', '_'))
     
-    try:
-        ftp = FTP('theddy.top', timeout=5)
-        ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
-        ftp.cwd('./updater')
-        size = ftp.size(f'./{filename}.apk')
-
-        def chunk() -> Generator[bytes, None, None]:
-            queue = Queue(maxsize=2048)
-
-            def ftp_threading():
-                ftp.retrbinary(f'RETR ./{filename}.apk', callback=queue.put)
-                queue.put(None)
-            
-            ftp_thread = threading.Thread(target=ftp_threading)
-            ftp_thread.start()
-
-            while True:
-                chunk = queue.get()
-                if chunk is not None:
-                    yield chunk
-                else:
-                    ftp.quit()
-                    return
-        
+    try: 
         if android_id is not None:
             if android_id not in (await get_all_downloaded_android_ids_by_name(session, name)):
                 new_download = DownloadHistory(android_id=android_id,app_id=app.id, version=latest_apk.version)
@@ -163,10 +140,10 @@ async def download_file(name: str, android_id: Union[str, None] = None, session:
             else:
                 updated_download = await get_app_download_by_android_id(session, name, android_id)
                 updated_download.downloaded_at = datetime.now()
-            await session.commit()
-            await session.flush()
-        return StreamingResponse(chunk(), headers={'content-length': str(size)}, media_type='application/vnd.android.package-archive')
+        await session.commit()
+        await session.flush()
 
+        return RedirectResponse('{}/app/updater/{}.apk'.format(os.environ.get('BASE_FTP_URL'), filename))
     except error_perm as e:
         if ('No such file or directory' in e.args[0]):
             raise HTTPException(status_code=401, detail=f'Arquivo {filename}.apk não existe no FTP')
@@ -177,6 +154,44 @@ async def download_file(name: str, android_id: Union[str, None] = None, session:
     except Exception as e:
         print(e)
         raise HTTPException(status_code=401, detail='Erro na conexão com ftp')
+
+@router.get('/download/{name}/{version}')
+async def download_file(name: str, version: str, android_id: Union[str, None] = None, session: AsyncSession = Depends(get_async_session)):
+
+    app = await get_app_by_name(session, name)
+    if (app == None):
+        raise HTTPException(status_code=404, detail='Aplicativo não encontrado')
+
+    apks = await get_apks_by_app_id(session, app.id);
+
+    if (version not in map(lambda apk: apk.version, apks)):
+         raise HTTPException(status_code=404, detail='Versão não encontrada')
+    # Convention will be {name}{parsed_semver}.apk like biju3_6_3-beta.apk
+    filename = '{}{}'.format(app.name, version.replace('.', '_'))
+    
+    try: 
+        if android_id is not None:
+            if android_id not in (await get_all_downloaded_android_ids_by_name(session, name)):
+                new_download = DownloadHistory(android_id=android_id,app_id=app.id, version=version)
+                session.add(new_download)
+            else:
+                updated_download = await get_app_download_by_android_id(session, name, android_id)
+                updated_download.downloaded_at = datetime.now()
+        await session.commit()
+        await session.flush()
+
+        return RedirectResponse('{}/app/updater/{}.apk'.format(os.environ.get('BASE_FTP_URL'), filename))
+    except error_perm as e:
+        if ('No such file or directory' in e.args[0]):
+            raise HTTPException(status_code=401, detail=f'Arquivo {filename}.apk não existe no FTP')
+        raise HTTPException(status_code=401, detail='FTP recusou a conexão')
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail='android_id inválido')
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=401, detail='Erro na conexão com ftp')
+
 
 @router.get('/download_info/{name}')
 async def download_info(name: str, android_id: Union[str, None], session: AsyncSession = Depends(get_async_session), _ = Depends(current_active_user)):
