@@ -93,11 +93,11 @@ async def create_file(
     filename = '{}{}'.format(app.name, version.replace('.', '_'))
 
     try:
-        file_like = io.BytesIO(file)
+        # file_like = io.BytesIO()
         async with aioftp.Client.context('theddy.top', 21, 'app@theddy.top', os.environ.get('FTP_PASS')) as client:
             
             await client.change_directory('updater')
-            await client.upload(file_like,'./{filename}.apk', block_size=19200)
+            await client.upload(file,'./{filename}.apk', block_size=19200)
 
         # await ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
 
