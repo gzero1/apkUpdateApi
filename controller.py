@@ -93,19 +93,16 @@ async def create_file(
     filename = '{}{}'.format(app.name, version.replace('.', '_'))
 
     try:
-        # file_like = io.BytesIO()
+        file_like = io.BytesIO(file)
         async with aioftp.Client.context('theddy.top', 21, 'app@theddy.top', os.environ.get('FTP_PASS')) as client:
             
             await client.change_directory('updater')
-            await client.upload(file,'./{filename}.apk', block_size=19200)
-
-        # await ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
-
-        # ftp.cwd('updater')
-
-        # ftp.storbinary(f'STOR ./{filename}.apk', file_like, 19200)
-
-        # ftp.quit()
+            async with client.upload_stream('./{filename}.apk') as stream:
+                while True:
+                    data = file_like.read(19200)
+                    if not data:
+                        break
+                    await stream.write(data)
 
         if (version not in map(lambda apk: apk.version, apks)):
             new_apk = Apk(app=app,app_id=app.id, is_stable=is_stable, version=version)
