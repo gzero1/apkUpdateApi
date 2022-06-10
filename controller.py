@@ -5,11 +5,10 @@ import io
 import os
 import semver
 import schemas
-import threading
+import aioftp
 
 from datetime import datetime
 from typing import Generator, Union
-from ftplib import FTP, error_perm
 from queue import Queue
 from dal import get_all_downloaded_android_ids_by_name, get_apk_by_app_id_and_version, get_apks_by_app_id, get_app_by_name, get_apps_by_user_id, get_latest_apk_by_app_id, get_app_download_by_android_id, get_total_downloads_by_name, get_total_updated_by_name
 from dotenv import load_dotenv
@@ -82,7 +81,7 @@ async def create_file(
     session: AsyncSession = Depends(get_async_session),
     _ = Depends(current_active_user)):
 
-    print(is_stable)
+
     if (not semver.VersionInfo.isvalid(version)):
         raise HTTPException(status_code=400, detail='Versão não formatada corretamente')
     
@@ -94,15 +93,19 @@ async def create_file(
     filename = '{}{}'.format(app.name, version.replace('.', '_'))
 
     try:
-        ftp = FTP('theddy.top', timeout=100)
-        ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
-
-        ftp.cwd('updater')
         file_like = io.BytesIO(file)
+        async with aioftp.Client.context('theddy.top', 21, 'app@theddy.top', os.environ.get('FTP_PASS')) as client:
+            
+            await client.change_directory('updater')
+            await client.upload(file_like,'./{filename}.apk', block_size=19200)
 
-        ftp.storbinary(f'STOR ./{filename}.apk', file_like)
+        # await ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
 
-        ftp.quit()
+        # ftp.cwd('updater')
+
+        # ftp.storbinary(f'STOR ./{filename}.apk', file_like, 19200)
+
+        # ftp.quit()
 
         if (version not in map(lambda apk: apk.version, apks)):
             new_apk = Apk(app=app,app_id=app.id, is_stable=is_stable, version=version)
@@ -110,8 +113,8 @@ async def create_file(
             await session.commit()
             await session.flush()
 
-    except error_perm:
-        raise HTTPException(status_code=401, detail='FTP recusou a conexão')
+    # except error_perm:
+    #     raise HTTPException(status_code=401, detail='FTP recusou a conexão')
     except Exception as e:
         print(e)
         raise HTTPException(status_code=401, detail='Erro na conexão com FTP')
