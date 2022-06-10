@@ -94,7 +94,7 @@ async def create_file(
     filename = '{}{}'.format(app.name, version.replace('.', '_'))
 
     try:
-        ftp = FTP('theddy.top', timeout=5)
+        ftp = FTP('theddy.top', timeout=100)
         ftp.login('app@theddy.top', os.environ.get('FTP_PASS'))
 
         ftp.cwd('updater')
